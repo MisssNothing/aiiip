@@ -20,6 +20,12 @@ namespace eee {
     p_t next(p_t prev) const override;
     p_t d;
   };
+  struct HLine: IDraw {
+    explicit HLine(p_t hl);
+    p_t begin() const override;
+    p_t next(p_t prev) const override;
+    p_t h;
+  };
   p_t * extend(const p_t* pts, size_t s, p_t fill);
   void extend(p_t** pts, size_t& s, p_t fill);
   void append(const IDraw* sh, p_t** ppts, size_t& s);
@@ -34,19 +40,19 @@ int main()
 {
   using namespace eee;
   int err = 0;
-  IDraw* shp[3] = {};
+  int x1 = 0, y1 = 2, x2 = 4, y2 = y1;
+  IDraw* shp[x2 - x1 + 1] = {};
   p_t * pts = nullptr;
   size_t s = 0;
   try {
-    shp[0] = new Dot({0, 0});
-    shp[1] = new Dot({2, 3});
-    shp[2] = new Dot({-5, -2});
-    for (size_t i = 0; i < 3; ++i) {
-      append(shp[i], &pts, s);
+    shp[0] = new HLine({x1, y1});
+    shp[1] = new HLine({x2, y2});
+    for (int i = 0; i < x2 - x1 + 1; ++i) {
+      append(new HLine({i, y1}), &pts, s);
     }
     f_t fr = frame(pts, s);
     char * cnv = canvas(fr, '.');
-    for (size_t i = 0; i < s; ++i) {
+    for (size_t i = fr.aa.x; i < fr.bb.x + 1; ++i) {
       paint(pts[i], cnv, fr, '#');
     }
     flush(std::cout, cnv, fr);
@@ -55,9 +61,9 @@ int main()
     std::cerr << "Error\n";
     err = 1;
   }
-  delete shp[1];
-  delete shp[0];
-  delete shp[2];
+  for (int i = 0; i < x2 - x1 + 1; ++i) {
+    delete shp[i];
+  }
   return err;
 }
 eee::p_t * eee::extend(const p_t* pts, size_t s, p_t fill)
@@ -121,6 +127,17 @@ eee::f_t eee::frame(const p_t * pts, size_t s)
   p_t a{minx, miny};
   p_t b{maxx, maxy};
   return f_t{a, b};
+}
+eee::HLine::HLine(p_t hl): IDraw(), h{hl}
+{}
+eee::p_t eee::HLine::begin() const {
+  return h;
+}
+eee::p_t eee::HLine::next(p_t prev) const {
+  if (prev != h) {
+    throw std::logic_error("bad prev");
+  }
+  return h;
 }
 eee::Dot::Dot(p_t dd): IDraw(), d{dd}
 {}

@@ -47,8 +47,13 @@ int main()
   try {
     shp[0] = new HLine({x1, y1});
     shp[1] = new HLine({x2, y2});
+    int x_i = x1 + 1;
+    for (int i = 2; i < x2 - x1 + 1; ++i) {
+      shp[i] = new HLine({x_i, y1});
+      ++x_i;
+    }
     for (int i = 0; i < x2 - x1 + 1; ++i) {
-      append(new HLine({i, y1}), &pts, s);
+      append(shp[i], &pts, s);
     }
     f_t fr = frame(pts, s);
     char * cnv = canvas(fr, '.');

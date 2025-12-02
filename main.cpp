@@ -20,11 +20,15 @@ namespace eee {
     p_t next(p_t prev) const override;
     p_t d;
   };
+  p_t * extend(const p_t* pts, size_t s, p_t fill);
+  void extend(p_t** pts, size_t& s, p_t fill);
   void append(const IDraw* sh, p_t** ppts, size_t& s);
   f_t frame(const p_t * pts, size_t s);
   char * canvas(f_t fr, char fill);
   void paint(p_t p, char * cnv, f_t fr, char fill);
   void flush(std::ostream& os, const char* cnv, f_t fr);
+  size_t rows(f_t fr);
+  size_t cols(f_t fr);
 }
 int main()
 {
@@ -56,9 +60,48 @@ int main()
   delete shp[2];
   return err;
 }
-char * canvas(f_t fr, char fill)
+eee::p_t * eee::extend(const p_t* pts, size_t s, p_t fill)
 {
-  size t = rows(fr) * cols(fr);
+  p_t* r = new p_t[s + 1];
+  for (size_t i = 0; i < s; ++i) {
+    r[i] = pts[i];
+  }
+  r[s] = fill;
+  return r;
+}
+void eee::extend(p_t** pts, size_t& s, p_t fill)
+{
+  p_t* r = extend(*pts, s, fill);
+  delete[] *pts;
+  ++s;
+  *pts = r;
+}
+void eee::append(const IDraw* sh, p_t** ppts, size_t& s)
+{
+  extend(ppts, s, sh->begin());
+  p_t b = sh->begin();
+  while (sh->next(b) != sh->begin()) {
+    b = sh->next(b);
+    extend(ppts, s, b);
+  }
+}
+void eee::paint(p_t p, char * cnv, f_t fr, char fill)
+{
+  size_t dx = p.x - fr.aa.x;
+  size_t dy = fr.bb.y - p.y;
+  cnv[dy * cols(fr) + dx] = fill;
+}
+void eee::flush(std::ostream& os, const char* cnv, f_t fr) {
+  for (size_t i = 0; i < rows(fr); ++i) {
+    for (size_t j = 0; j < cols(fr); ++j) {
+      os << cnv[i * cols(fr) +j];
+    }
+    os << '\n';
+  }
+}
+char * eee::canvas(f_t fr, char fill)
+{
+  size_t t = rows(fr) * cols(fr);
   char * c = new char[rows(fr) * cols(fr)];
   for (size_t i = 0; i < t; ++i) {
     c[i] = fill;

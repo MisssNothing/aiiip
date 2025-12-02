@@ -20,29 +20,48 @@ namespace eee {
     p_t next(p_t prev) const override;
     p_t d;
   };
+  void append(const IDraw* sh, p_t** ppts, size_t& s);
+  f_t frame(const p_t * pts, size_t s);
+  char * canvas(f_t fr, char fill);
+  void paint(p_t p, char * cnv, f_t fr, char fill);
+  void flush(std::ostream& os, const char* cnv, f_t fr);
 }
 int main()
 {
   using namespace eee;
   int err = 0;
   IDraw* shp[3] = {};
+  p_t * pts = nullptr;
+  size_t s = 0;
   try {
     shp[0] = new Dot({0, 0});
     shp[1] = new Dot({2, 3});
+    shp[2] = new Dot({-5, -2});
+    for (size_t i = 0; i < 3; ++i) {
+      append(shp[i], &pts, s);
+    }
+    f_t fr = frame(pts, s);
+    char * cnv = canvas(fr, '.');
+    for (size_t i = 0; i < s; ++i) {
+      paint(pts[i], cnv, fr, '#');
+    }
+    flush(std::cout, cnv, fr);
+    delete [] cnv;
   } catch (...) {
-    std::cerr << "Error\n"
+    std::cerr << "Error\n";
     err = 1;
   }
   delete shp[1];
   delete shp[0];
-  return 1;
+  delete shp[2];
+  return err;
 }
 eee::Dot::Dot(p_t dd): IDraw(), d{dd}
 {}
-eee:p_t eee::Dot::begin() const {
+eee::p_t eee::Dot::begin() const {
   return d;
 }
-eee:p_t eee::Dot::next(p_t prev) const {
+eee::p_t eee::Dot::next(p_t prev) const {
   if (prev != d) {
     throw std::logic_error("bad prev");
   }

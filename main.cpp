@@ -56,15 +56,24 @@ int main()
   delete shp[2];
   return err;
 }
+char * canvas(f_t fr, char fill)
+{
+  size t = rows(fr) * cols(fr);
+  char * c = new char[rows(fr) * cols(fr)];
+  for (size_t i = 0; i < t; ++i) {
+    c[i] = fill;
+  }
+  return c;
+}
 eee::f_t eee::frame(const p_t * pts, size_t s)
 {
   int minx = pts[0].x, miny = pts[0].y;
   int maxx = minx, maxy = miny;
   for (size_t i = 0; i < s; ++i) {
-    minx = std::min(minx, pts[i]);
-    miny = std::min(miny, pts[i]);
-    maxx = std::max(maxx, pts[i]);
-    maxy = std::max(maxy, pts[i]);
+    minx = std::min(minx, pts[i].x);
+    miny = std::min(miny, pts[i].y);
+    maxx = std::max(maxx, pts[i].x);
+    maxy = std::max(maxy, pts[i].y);
   }
   p_t a{minx, miny};
   p_t b{maxx, maxy};
@@ -80,6 +89,12 @@ eee::p_t eee::Dot::next(p_t prev) const {
     throw std::logic_error("bad prev");
   }
   return d;
+}
+size_t eee::rows(f_t fr) {
+  return fr.bb.y - fr.aa.y + 1;
+}
+size_t eee::cols(f_t fr) {
+  return fr.bb.x - fr.aa.x + 1;
 }
 bool eee::operator==(p_t a, p_t b) {
   return a.x == b.x && a.y == b.y;

@@ -56,6 +56,20 @@ int main()
   delete shp[2];
   return err;
 }
+eee::f_t eee::frame(const p_t * pts, size_t s)
+{
+  int minx = pts[0].x, miny = pts[0].y;
+  int maxx = minx, maxy = miny;
+  for (size_t i = 0; i < s; ++i) {
+    minx = std::min(minx, pts[i]);
+    miny = std::min(miny, pts[i]);
+    maxx = std::max(maxx, pts[i]);
+    maxy = std::max(maxy, pts[i]);
+  }
+  p_t a{minx, miny};
+  p_t b{maxx, maxy};
+  return f_t{a, b};
+}
 eee::Dot::Dot(p_t dd): IDraw(), d{dd}
 {}
 eee::p_t eee::Dot::begin() const {

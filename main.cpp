@@ -26,6 +26,12 @@ namespace eee {
     p_t next(p_t prev) const override;
     p_t h;
   };
+  struct Triangle: IDraw {
+    explicit Triangle(p_t hr);
+    p_t begin() const override;
+    p_t next(p_t prev) const override;
+    p_t e;
+  };
   p_t * extend(const p_t* pts, size_t s, p_t fill);
   void extend(p_t** pts, size_t& s, p_t fill);
   void append(const IDraw* sh, p_t** ppts, size_t& s);
@@ -40,24 +46,33 @@ int main()
 {
   using namespace eee;
   int err = 0;
-  int x1 = 0, y1 = 2, x2 = 4, y2 = y1;
-  IDraw* shp[x2 - x1 + 1] = {};
+  int size_trian = 5;
+  int other_trian = 0;
+  int other = size_trian - 1;
+  while (other != 0) {
+    other_trian += other;
+    --other;
+  }
+  int x = 0, y = 0;
+  IDraw* shp[size_trian * size_trian - other_trian] = {};
   p_t * pts = nullptr;
   size_t s = 0;
   try {
-    shp[0] = new HLine({x1, y1});
-    shp[1] = new HLine({x2, y2});
-    int x_i = x1 + 1;
-    for (int i = 2; i < x2 - x1 + 1; ++i) {
-      shp[i] = new HLine({x_i, y1});
-      ++x_i;
+    int j_trian = size_trian + 0;
+    int shp_i = 0;
+    for (int i = 0; i < size_trian; ++i) {
+      for (int j = 0; j < j_trian; ++j) {
+        shp[shp_i] = new Triangle({x + j, y + i});
+        ++shp_i;
+      }
+      --j_trian;
     }
-    for (int i = 0; i < x2 - x1 + 1; ++i) {
+    for (int i = 0; i < size_trian * size_trian - other_trian; ++i) {
       append(shp[i], &pts, s);
     }
     f_t fr = frame(pts, s);
     char * cnv = canvas(fr, '.');
-    for (size_t i = fr.aa.x; i < fr.bb.x + 1; ++i) {
+    for (size_t i = 0; i < s; ++i) {
       paint(pts[i], cnv, fr, '#');
     }
     flush(std::cout, cnv, fr);
@@ -66,11 +81,14 @@ int main()
     std::cerr << "Error\n";
     err = 1;
   }
-  for (int i = 0; i < x2 - x1 + 1; ++i) {
+  for (int i = 0; i < size_trian * size_trian - other_trian; ++i) {
     delete shp[i];
   }
   return err;
 }
+
+
+
 eee::p_t * eee::extend(const p_t* pts, size_t s, p_t fill)
 {
   p_t* r = new p_t[s + 1];
@@ -133,6 +151,20 @@ eee::f_t eee::frame(const p_t * pts, size_t s)
   p_t b{maxx, maxy};
   return f_t{a, b};
 }
+
+eee::Triangle::Triangle(p_t hr): IDraw(), e{hr}
+{}
+eee::p_t eee::Triangle::begin() const {
+  return e;
+}
+eee::p_t eee::Triangle::next(p_t prev) const {
+  if (prev != e) {
+    throw std::logic_error("bad prev");
+  }
+  return e;
+}
+
+
 eee::HLine::HLine(p_t hl): IDraw(), h{hl}
 {}
 eee::p_t eee::HLine::begin() const {

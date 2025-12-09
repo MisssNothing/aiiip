@@ -35,10 +35,34 @@ namespace eee {
   struct Rect: IDraw {
     Rect(p_t pos, int w, int h);
     Rect(p_t a, p_t b);
-    virtual p_t aa() const = 0;
     p_t begin() const override;
     p_t next(p_t prev) const override;
     f_t rect;
+  };
+  struct Frect: IDraw {
+    Frect(p_t pos, int w, int h);
+    Frect(p_t a, p_t b);
+    p_t begin() const override;
+    p_t next(p_t prev) const override;
+    f_t rect;
+  };
+  struct Layers {
+    Layers();
+    ~Layers();
+    Layers(const& Layers) = delete;
+    Layers operator=(const& Layers) = delete;
+    Layers(Layers&&) = delete;
+    Layers& operator=(Layers&&) = delete;
+    void append(const IDraw & dr);
+    size_t layers() const;
+    size_t points() const;
+    size_t layer(size_t i) const;
+    p_t point(size_t i) const;
+  private:
+    size_t points;
+    p_t * pts;
+    p_t * layers;
+    size_t * sizes;
   };
   p_t * extend(const p_t* pts, size_t s, p_t fill);
   void extend(p_t** pts, size_t& s, p_t fill);
@@ -54,34 +78,27 @@ int main()
 {
   using namespace eee;
   int err = 0;
-  int size_trian = 5;
-  int other_trian = 0;
-  int other = size_trian - 1;
-  while (other != 0) {
-    other_trian += other;
-    --other;
-  }
-  int x = 0, y = 0;
-  IDraw* shp[size_trian * size_trian - other_trian] = {};
+  IDraw* shp[3] = {};
+  size_t sizes[3] = {};
   p_t * pts = nullptr;
   size_t s = 0;
   try {
-    int j_trian = size_trian + 0;
-    int shp_i = 0;
-    for (int i = 0; i < size_trian; ++i) {
-      for (int j = 0; j < j_trian; ++j) {
-        shp[shp_i] = new Triangle({x + j, y + i});
-        ++shp_i;
-      }
-      --j_trian;
-    }
-    for (int i = 0; i < size_trian * size_trian - other_trian; ++i) {
+    shp[0] = new Rect({10, 10}, {20, 20});
+    shp[1] = new Frect({0, 0}, {3, 4});
+    shp[2] = new Dot({1, 9});
+    for (size_t i = 0; i < 3; ++ i) {
       append(shp[i], &pts, s);
+      sizes[i] = s;
     }
     f_t fr = frame(pts, s);
     char * cnv = canvas(fr, '.');
-    for (size_t i = 0; i < s; ++i) {
-      paint(pts[i], cnv, fr, '#');
+    const char * brush = "%0#";
+    for (size_t k = 0; k < 3; ++k) {
+      size_t start = !k ? 0 : sizes[k - 1];
+      size_t end = sizes[k];
+      for (size_t i = start; i < end; ++i) {
+        paint(pts[i], cnv, fr, brush[k]);
+      }
     }
     flush(std::cout, cnv, fr);
     delete [] cnv;
@@ -89,19 +106,11 @@ int main()
     std::cerr << "Error\n";
     err = 1;
   }
-  for (int i = 0; i < size_trian * size_trian - other_trian; ++i) {
+  for (int i = 0; i < 3; ++i) {
     delete shp[i];
   }
   return err;
 }
-eee::Rect::Rect(p_t pos, int w, int h): IDraw(), rect{pos, {pos.x + w, pos.y + h}}
-{
-  if (!(w > 0 && h > 0)) {
-    throw std::logic_error("bad rect");
-  }
-}
-eee::Rect::Rect(p_t a, p_t b): Rect(a, b.x - a.x, b.y - a.y)
-{}
 
 eee::p_t * eee::extend(const p_t* pts, size_t s, p_t fill)
 {
@@ -165,6 +174,59 @@ eee::f_t eee::frame(const p_t * pts, size_t s)
   p_t b{maxx, maxy};
   return f_t{a, b};
 }
+
+eee::Frect::Frect(p_t pos, int w, int h):
+  IDraw(),
+  rect{pos, {pos.x + w, pos.y + h}}
+{
+  if (!(w > 0 && h > 0)) {
+    throw std::logic_error("bad rect");
+  }
+}
+eee::Frect::Frect(p_t a, p_t b):
+  Frect(a, b.x - a.x, b.y - a.y)
+{}
+eee::p_t eee::Frect::begin() const {
+  return rect.aa;
+}
+eee::p_t eee::Frect::next(p_t prev) const {
+  if (prev.x < rect.bb.x) {
+    return {prev.x + 1, prev.y};
+  } else if (prev.x == rect.bb.x && prev.y < rect.bb.y) {
+    return {rect.aa.x, prev.y + 1};
+  } else if (prev == rect.bb) {
+    return rect.aa;
+  }
+  throw std::logic_error("bad impl");
+}
+
+eee::Rect::Rect(p_t pos, int w, int h):
+  IDraw(),
+  rect{pos, {pos.x + w, pos.y + h}}
+{
+  if (!(w > 0 && h > 0)) {
+    throw std::logic_error("bad rect");
+  }
+}
+eee::Rect::Rect(p_t a, p_t b): Rect(a, b.x - a.x, b.y - a.y)
+{}
+eee::p_t eee::Rect::begin() const {
+  return rect.aa;
+}
+eee::p_t eee::Rect::next(p_t prev) const {
+  if (prev.x == rect.aa.x && prev.y < rect.bb.y) {
+    return {prev.x, prev.y + 1};
+  } else if (prev.y == rect.bb.y && prev.x < rect.bb.x) {
+    return {prev.x + 1, prev.y};
+  } else if (prev.x == rect.bb.x && prev.y > rect.aa.y) {
+    return {prev.x, prev.y - 1};
+  } else if (prev.y == rect.aa.y && prev.x > rect.aa.x) {
+    return {prev.x - 1, prev.y};
+  }
+  throw std::logic_error("bad impl");
+}
+
+
 
 eee::Triangle::Triangle(p_t hr): IDraw(), e{hr}
 {}

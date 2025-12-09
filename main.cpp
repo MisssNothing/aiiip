@@ -49,25 +49,29 @@ namespace eee {
   struct Layers {
     Layers();
     ~Layers();
-    Layers(const& Layers) = delete;
-    Layers operator=(const& Layers) = delete;
+    Layers(const Layers&) = delete;
+    Layers operator=(const Layers&) = delete;
     Layers(Layers&&) = delete;
     Layers& operator=(Layers&&) = delete;
     void append(const IDraw & dr);
     size_t layers() const;
     size_t points() const;
-    size_t layer(size_t i) const;
+    size_t start(size_t i) const;
+    size_t end(size_t i) const;
     p_t point(size_t i) const;
+    f_t frame() const;
   private:
-    size_t points;
-    p_t * pts;
-    p_t * layers;
-    size_t * sizes;
+    size_t points_;
+    p_t * pts_;
+    size_t layers_;
+    size_t * sizes_;
   };
   p_t * extend(const p_t* pts, size_t s, p_t fill);
   void extend(p_t** pts, size_t& s, p_t fill);
   void append(const IDraw* sh, p_t** ppts, size_t& s);
   f_t frame(const p_t * pts, size_t s);
+  struct Layers;
+  f_t frame(const Layers& ls);
   char * canvas(f_t fr, char fill);
   void paint(p_t p, char * cnv, f_t fr, char fill);
   void flush(std::ostream& os, const char* cnv, f_t fr);
@@ -79,25 +83,22 @@ int main()
   using namespace eee;
   int err = 0;
   IDraw* shp[3] = {};
-  size_t sizes[3] = {};
-  p_t * pts = nullptr;
-  size_t s = 0;
+  Layers layers;
   try {
     shp[0] = new Rect({10, 10}, {20, 20});
     shp[1] = new Frect({0, 0}, {3, 4});
     shp[2] = new Dot({1, 9});
     for (size_t i = 0; i < 3; ++ i) {
-      append(shp[i], &pts, s);
-      sizes[i] = s;
+      layers.append(*(shp[i]));
     }
-    f_t fr = frame(pts, s);
+    f_t fr = frame(layers);
     char * cnv = canvas(fr, '.');
     const char * brush = "%0#";
-    for (size_t k = 0; k < 3; ++k) {
-      size_t start = !k ? 0 : sizes[k - 1];
-      size_t end = sizes[k];
+    for (size_t k = 0; k < layers.layers(); ++k) {
+      size_t start = layers.start(k);
+      size_t end = layers.end(k);
       for (size_t i = start; i < end; ++i) {
-        paint(pts[i], cnv, fr, brush[k]);
+        paint(layers.point(i), cnv, fr, brush[k]);
       }
     }
     flush(std::cout, cnv, fr);
@@ -110,6 +111,33 @@ int main()
     delete shp[i];
   }
   return err;
+}
+eee::Layers::Layers():
+  points_{0},
+  pts_{nullptr},
+  layers_{0},
+  sizes_{nullptr}
+{}
+void eee::Layers::append(const IDraw& dr) {
+  size_t* ext_sizes = new size_t[layers_ + 1];
+  try {
+    eee::append(&dr, &pts_, points_);
+  } catch (...) {
+    delete [] ext_sizes;
+    throw;
+  }
+  for (size_t i = 0; i < layers_; ++i) {
+    ext_sizes[i] = sizes_[i];
+  }
+  ext_sizes[layers_] = points_;
+  delete [] sizes_;
+  sizes_ = ext_sizes;
+  ++layers_;
+}
+eee::Layers::~Layers()
+{
+  delete [] pts_;
+  delete [] sizes_;
 }
 
 eee::p_t * eee::extend(const p_t* pts, size_t s, p_t fill)
@@ -277,3 +305,4 @@ bool eee::operator!=(p_t a, p_t b) {
 }
 
 
+//сделать перемещение и копирование и реал методы struct Layers
